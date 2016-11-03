@@ -70,7 +70,7 @@ class UpdateModelForDatasetId(BaseHandler):
         if l:
             c1.fit(f,l) # training
             lstar = c1.predict(f)
-            self.clf = c1
+            self.clf[dsid] = c1
             acc = sum(lstar==l)/float(len(l))
             bytes = pickle.dumps(c1)
             self.db.models.update({"dsid":dsid},
@@ -92,11 +92,12 @@ class PredictOneFromDatasetId(BaseHandler):
         fvals = np.array(fvals).reshape(1, -1)
         dsid  = data['dsid']
 
+        
         # load the model from the database (using pickle)
         # we are blocking tornado!! no!!
-        if(self.clf == []):
+        if(dsid not in self.clf.keys()):
             print('Loading Model From DB')
             tmp = self.db.models.find_one({"dsid":dsid})
-            self.clf = pickle.loads(tmp['model'])
-        predLabel = self.clf.predict(fvals);
+            self.clf[dsid] = pickle.loads(tmp['model'])
+        predLabel = self.clf[dsid].predict(fvals);
         self.write_json({"prediction":str(predLabel)})
